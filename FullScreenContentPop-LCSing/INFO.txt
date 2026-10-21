@@ -1,0 +1,6 @@
+Project: FullScreenContentPop
+Target: iOS app-side injected dynamic library
+Source: Objective-C / UIKit
+Build host: macOS with Xcode Command Line Tools
+Output: unsigned arm64 dylib; LCSing must inject and re-sign the app
+Status: CI build verifies binary format and architecture; runtime behavior must be tested on target iOS devices
