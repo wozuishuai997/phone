@@ -1,0 +1,56 @@
+name: Build FullScreenContentPop dylib
+
+on:
+  push:
+    paths:
+      - "FullScreenContentPop-LCSing/**"
+      - ".github/workflows/build-dylib.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Show Xcode and SDK versions
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          xcrun --sdk iphoneos --show-sdk-path
+
+      - name: Build arm64 iOS dylib
+        working-directory: FullScreenContentPop-LCSing
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Inspect and validate binary
+        run: |
+          set -euo pipefail
+          DYLIB="FullScreenContentPop-LCSing/build/FullScreenContentPop.dylib"
+          test -s "$DYLIB"
+          file "$DYLIB"
+          lipo -info "$DYLIB"
+          otool -L "$DYLIB"
+          # Ensure this is a Mach-O dynamic library and includes the expected entry point.
+          file "$DYLIB" | grep -q "Mach-O"
+          otool -hv "$DYLIB" | grep -q "DYLIB"
+          # Fail if the expected library was not built for arm64.
+          lipo -info "$DYLIB" | grep -q "arm64"
+          shasum -a 256 "$DYLIB" | tee FullScreenContentPop-LCSing/build/SHA256SUMS.txt
+          ls -lh "$DYLIB" FullScreenContentPop-LCSing/build/SHA256SUMS.txt
+
+      - name: Upload compiled dylib
+        uses: actions/upload-artifact@v4
+        with:
+          name: FullScreenContentPop-iOS-arm64
+          path: |
+            FullScreenContentPop-LCSing/build/FullScreenContentPop.dylib
+            FullScreenContentPop-LCSing/build/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
